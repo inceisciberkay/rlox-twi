@@ -7,7 +7,7 @@ fn main() {
 
     match args.len() {
         1 => run_prompt().unwrap(),
-        2 => run_file(args[1]).unwrap(),
+        2 => run_file(&args[1]).unwrap(),
         _ => {
             eprintln!("Usage: jlox [script]");
             process::exit(64);
