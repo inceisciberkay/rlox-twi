@@ -1,0 +1,5 @@
+fun main() {
+    print "hellooooo"
+    var i = 5 * 5
+    print i
+}
