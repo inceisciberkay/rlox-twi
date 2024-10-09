@@ -186,7 +186,10 @@ impl<'a> Scanner<'a> {
         self.advance(); // closing "
 
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token(TokenType::String, Some(Literal::String(str::from_utf8(value).unwrap())))
+        self.add_token(
+            TokenType::String,
+            Some(Literal::String(str::from_utf8(value).unwrap())),
+        )
     }
 
     fn is_digit(c: Option<u8>) -> bool {

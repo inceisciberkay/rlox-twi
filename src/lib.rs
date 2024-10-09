@@ -2,8 +2,8 @@ mod scanner;
 
 use scanner::Scanner;
 use std::fmt;
-use std::result;
 use std::io::{self, Write};
+use std::result;
 
 #[derive(Debug, Clone)]
 struct LoxError(Vec<(usize, &'static str)>);

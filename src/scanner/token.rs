@@ -58,7 +58,12 @@ pub struct Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub fn new(r#type: TokenType, lexeme: &'a [u8], literal: Option<Literal<'a>>, line: usize) -> Self {
+    pub fn new(
+        r#type: TokenType,
+        lexeme: &'a [u8],
+        literal: Option<Literal<'a>>,
+        line: usize,
+    ) -> Self {
         Token {
             r#type,
             lexeme,
