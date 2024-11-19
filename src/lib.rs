@@ -1,23 +1,10 @@
+mod error;
 mod scanner;
 
+use error::LoxError;
 use scanner::Scanner;
-use std::fmt;
 use std::io::{self, Write};
 use std::result;
-
-#[derive(Debug, Clone)]
-struct LoxError(Vec<(usize, &'static str)>);
-
-impl fmt::Display for LoxError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for error in &self.0 {
-            write!(f, "Line: {}, Cause: {}", error.0, error.1)?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for LoxError {}
 
 type Result = result::Result<(), Box<dyn std::error::Error>>;
 type LoxResult = result::Result<(), LoxError>;
