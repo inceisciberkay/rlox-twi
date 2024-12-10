@@ -1,13 +1,17 @@
 mod error;
+mod expr;
+mod interpreter;
+mod parser;
 mod scanner;
+mod stmt;
+mod token;
 
-use error::LoxError;
+use error::Result;
+use interpreter::Interpreter;
+use parser::Parser;
 use scanner::Scanner;
-use std::io::{self, Write};
-use std::result;
 
-type Result = result::Result<(), Box<dyn std::error::Error>>;
-type LoxResult = result::Result<(), LoxError>;
+use std::io::{self, Write};
 
 pub fn run_prompt() -> Result {
     let mut buffer = String::new();
@@ -18,6 +22,7 @@ pub fn run_prompt() -> Result {
         io::stdout().flush()?;
         if let Ok(_) = stdin.read_line(&mut buffer) {
             run(&buffer)?;
+            buffer.clear();
         } else {
             break;
         }
@@ -33,13 +38,18 @@ pub fn run_file(path: &str) -> Result {
     Ok(())
 }
 
-fn run(source: &str) -> LoxResult {
+fn run(source: &str) -> Result {
     let mut scanner = Scanner::new(&source);
     let tokens = scanner.scan_tokens()?;
 
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    let mut parser = Parser::new(tokens);
+    let expr = parser.parse()?;
+
+    Interpreter::interpret(&expr)?;
+
+    // for token in tokens {
+    //     println!("{:?}", token);
+    // }
 
     Ok(())
 }

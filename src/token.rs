@@ -1,4 +1,4 @@
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TokenType {
     // Single-character tokens
     LeftParen,
@@ -51,10 +51,10 @@ pub enum TokenType {
 
 #[derive(Debug)]
 pub struct Token<'a> {
-    r#type: TokenType,
-    lexeme: &'a [u8],
-    literal: Option<Literal<'a>>,
-    line: usize,
+    pub(crate) r#type: TokenType,
+    pub(crate) lexeme: &'a [u8],
+    pub(crate) literal: Option<Literal<'a>>,
+    pub(crate) line: usize,
 }
 
 impl<'a> Token<'a> {
@@ -77,4 +77,32 @@ impl<'a> Token<'a> {
 pub enum Literal<'a> {
     String(&'a str),
     Number(f64),
+}
+
+#[derive(Debug)]
+pub enum Value {
+    Number(f64),
+    String(String),
+    Boolean(bool),
+    Nil,
+}
+
+impl<'a> From<&Literal<'a>> for Value {
+    fn from(literal: &Literal<'a>) -> Self {
+        match *literal {
+            Literal::String(s) => Value::String(s.to_owned()),
+            Literal::Number(n) => Value::Number(n),
+        }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Value::Number(n) => write!(f, "{}", n),
+            Value::String(s) => write!(f, "{}", s),
+            Value::Boolean(b) => write!(f, "{}", b),
+            Value::Nil => write!(f, "nil"),
+        }
+    }
 }

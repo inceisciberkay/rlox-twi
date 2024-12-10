@@ -1,11 +1,9 @@
-mod token;
+use crate::error::LexError;
+use crate::token::{Literal, Token, TokenType};
 
 use std::collections::HashMap;
 use std::str;
 use std::sync::OnceLock;
-use token::{Literal, Token, TokenType};
-
-use crate::LoxError;
 
 pub struct Scanner<'a> {
     source: &'a [u8],
@@ -52,7 +50,7 @@ impl<'a> Scanner<'a> {
         })
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LoxError> {
+    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LexError> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -64,7 +62,7 @@ impl<'a> Scanner<'a> {
         if self.errors.is_empty() {
             Ok(&self.tokens)
         } else {
-            Err(LoxError(self.errors.clone()))
+            Err(LexError(self.errors.clone()))
         }
     }
 
