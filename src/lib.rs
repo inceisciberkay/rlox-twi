@@ -1,13 +1,13 @@
 mod error;
 mod expr;
-// mod interpreter;
+mod interpreter;
 mod parser;
 mod scanner;
 mod token;
 mod value;
 
 use error::Result;
-// use interpreter::Interpreter;
+use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 
@@ -41,13 +41,18 @@ pub fn run_file(path: &str) -> Result {
 fn run(source: &str) -> Result {
     let scanner = Scanner::new(&source);
     let tokens = scanner.scan_tokens()?;
+    print!("\nTokens: ");
+    for token in &tokens {
+        print!("{} ", token.token_type);
+    }
+    println!("\n");
 
     let parser = Parser::new(&tokens);
     let expr = parser.parse()?;
+    println!("Expression in prefix notation: {}\n", expr.pretty_print());
 
-    println!("{}", expr.pretty_print());
-
-    // Interpreter::interpret(expr)?;
+    let value = Interpreter::interpret(expr)?;
+    println!("Value: {}", value);
 
     Ok(())
 }

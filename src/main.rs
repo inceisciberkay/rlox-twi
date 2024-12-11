@@ -13,7 +13,7 @@ fn main() {
             }
         }
         _ => {
-            eprintln!("Usage: jlox [script]");
+            eprintln!("Usage: ./rlox or ./rlox [file]");
             process::exit(64);
         }
     }

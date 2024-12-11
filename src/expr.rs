@@ -13,8 +13,9 @@ pub enum Expr<'token, 'lexeme> {
     Grouping(Box<Expr<'token, 'lexeme>>),
 }
 
-impl<'token, 'lexeme> Expr<'token, 'lexeme> {
+impl<'token, 'lexeme, 'err> Expr<'token, 'lexeme> {
     // print in prefix notation
+    #[allow(dead_code)]
     pub fn pretty_print(&self) -> String {
         match self {
             Self::Literal(val) => val.to_string(),
@@ -24,7 +25,9 @@ impl<'token, 'lexeme> Expr<'token, 'lexeme> {
             Self::Binary(l_expr, token, r_expr) => {
                 "(".to_owned()
                     + &String::from_utf8_lossy(token.lexeme)
+                    + " "
                     + &l_expr.pretty_print()
+                    + " "
                     + &r_expr.pretty_print()
                     + ")"
             }
@@ -32,7 +35,7 @@ impl<'token, 'lexeme> Expr<'token, 'lexeme> {
         }
     }
 
-    pub fn interpret(self) -> Result<Value, RuntimeError<'lexeme>> {
+    pub fn interpret(self) -> Result<Value, RuntimeError<'err>> {
         match self {
             Self::Literal(val) => Ok(val),
             Self::Unary(token, expr) => {
@@ -87,9 +90,26 @@ impl<'token, 'lexeme> Expr<'token, 'lexeme> {
                     (_, TokenType::EqualEqual, _) => {
                         Ok(Value::Boolean(Expr::is_equal(&left, &right)))
                     }
+
+                    // error cases
+                    (_, TokenType::Plus, _) => Err(RuntimeError {
+                        token: token.deep_clone(),
+                        msg:
+                            "Invalid binary expression: Operands must be two numbers or two strings",
+                    }),
+                    (_, TokenType::Minus, _)
+                    | (_, TokenType::Star, _)
+                    | (_, TokenType::Slash, _)
+                    | (_, TokenType::Greater, _)
+                    | (_, TokenType::GreaterEqual, _)
+                    | (_, TokenType::Less, _)
+                    | (_, TokenType::LessEqual, _) => Err(RuntimeError {
+                        token: token.deep_clone(),
+                        msg: "Invalid binary expression: Operands must be two numbers",
+                    }),
                     _ => Err(RuntimeError {
                         token: token.deep_clone(),
-                        msg: "Invalid binary expression",
+                        msg: "Invalid binary expression: reason unknown",
                     }),
                 }
             }
@@ -99,18 +119,18 @@ impl<'token, 'lexeme> Expr<'token, 'lexeme> {
 
     fn is_truthy(val: &Value) -> bool {
         match val {
-            &Value::Nil => false,
-            &Value::Boolean(val) => val,
+            Value::Nil => false,
+            Value::Boolean(val) => *val,
             _ => true,
         }
     }
 
     fn is_equal(val1: &Value, val2: &Value) -> bool {
         match (val1, val2) {
-            (&Value::Nil, &Value::Nil) => true,
-            (&Value::Number(n1), &Value::Number(n2)) => n1 == n2,
-            (&Value::String(ref s1), &Value::String(ref s2)) => s1 == s2,
-            (&Value::Boolean(b1), &Value::Boolean(b2)) => b1 == b2,
+            (Value::Nil, Value::Nil) => true,
+            (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+            (Value::String(s1), Value::String(s2)) => s1 == s2,
+            (Value::Boolean(b1), Value::Boolean(b2)) => b1 == b2,
             _ => false,
         }
     }

@@ -2,7 +2,6 @@ use crate::token::Token;
 use crate::token::TokenType;
 use std::fmt;
 use std::result;
-use std::str;
 
 pub type Result = result::Result<(), Box<dyn std::error::Error>>;
 
@@ -71,7 +70,7 @@ impl fmt::Display for ParseError<'_> {
         let lexeme = if self.token.token_type == TokenType::EOF {
             "eof"
         } else {
-            str::from_utf8(self.token.lexeme).unwrap()
+            &String::from_utf8_lossy(self.token.lexeme)
         };
 
         write!(
@@ -98,7 +97,13 @@ pub struct RuntimeError<'a> {
 
 impl fmt::Display for RuntimeError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}\n[line {}]", self.msg, self.token.line);
+        write!(
+            f,
+            "{}\n[line: {}, operator: {}]",
+            self.msg,
+            self.token.line,
+            &String::from_utf8_lossy(self.token.lexeme)
+        )?;
         Ok(())
     }
 }
