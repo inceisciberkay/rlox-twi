@@ -1,13 +1,13 @@
 mod error;
 mod expr;
-mod interpreter;
+// mod interpreter;
 mod parser;
 mod scanner;
-mod stmt;
 mod token;
+mod value;
 
 use error::Result;
-use interpreter::Interpreter;
+// use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 
@@ -39,17 +39,15 @@ pub fn run_file(path: &str) -> Result {
 }
 
 fn run(source: &str) -> Result {
-    let mut scanner = Scanner::new(&source);
+    let scanner = Scanner::new(&source);
     let tokens = scanner.scan_tokens()?;
 
-    let mut parser = Parser::new(tokens);
+    let parser = Parser::new(&tokens);
     let expr = parser.parse()?;
 
-    Interpreter::interpret(&expr)?;
+    println!("{}", expr.pretty_print());
 
-    // for token in tokens {
-    //     println!("{:?}", token);
-    // }
+    // Interpreter::interpret(expr)?;
 
     Ok(())
 }

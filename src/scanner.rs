@@ -1,21 +1,21 @@
-use crate::error::LexError;
+use crate::error::{LexError, LoxError};
 use crate::token::{Literal, Token, TokenType};
 
 use std::collections::HashMap;
 use std::str;
 use std::sync::OnceLock;
 
-pub struct Scanner<'a> {
-    source: &'a [u8],
-    tokens: Vec<Token<'a>>,
+pub struct Scanner<'lexeme> {
+    source: &'lexeme [u8],
+    tokens: Vec<Token<'lexeme>>,
     start: usize,
     current: usize,
     line: usize,
-    errors: Vec<(usize, &'static str)>,
+    errors: Vec<LexError>,
 }
 
-impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str) -> Self {
+impl<'lexeme, 'err> Scanner<'lexeme> {
+    pub fn new(source: &'lexeme str) -> Self {
         Self {
             source: source.as_bytes(),
             tokens: Vec::new(),
@@ -50,7 +50,7 @@ impl<'a> Scanner<'a> {
         })
     }
 
-    pub fn scan_tokens(&mut self) -> Result<&Vec<Token>, LexError> {
+    pub fn scan_tokens(mut self) -> Result<Vec<Token<'lexeme>>, LoxError<'err>> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
@@ -60,9 +60,9 @@ impl<'a> Scanner<'a> {
             .push(Token::new(TokenType::EOF, b"", Option::None, self.line));
 
         if self.errors.is_empty() {
-            Ok(&self.tokens)
+            Ok(self.tokens)
         } else {
-            Err(LexError(self.errors.clone()))
+            Err(self.errors.into())
         }
     }
 
@@ -125,7 +125,10 @@ impl<'a> Scanner<'a> {
             b'"' => self.string(),
             b'0'..=b'9' => self.number(),
             b'a'..=b'z' | b'A'..=b'Z' | b'_' => self.identifier(),
-            _ => self.errors.push((self.line, "Unexpected character")),
+            _ => self.errors.push(LexError {
+                line: self.line,
+                msg: "Unexpected character",
+            }),
         }
     }
 
@@ -138,10 +141,10 @@ impl<'a> Scanner<'a> {
         self.source[self.current - 1]
     }
 
-    fn add_token(&mut self, r#type: TokenType, literal: Option<Literal<'a>>) {
+    fn add_token(&mut self, token_type: TokenType, literal: Option<Literal<'lexeme>>) {
         let text = &self.source[self.start..self.current];
         self.tokens
-            .push(Token::new(r#type, text, literal, self.line));
+            .push(Token::new(token_type, text, literal, self.line));
     }
 
     fn match_char(&mut self, expected: u8) -> bool {
@@ -178,7 +181,10 @@ impl<'a> Scanner<'a> {
         }
 
         if self.is_at_end() {
-            self.errors.push((self.line, "Unterminated string"));
+            self.errors.push(LexError {
+                line: self.line,
+                msg: "Unterminated string",
+            });
         }
 
         self.advance(); // closing "

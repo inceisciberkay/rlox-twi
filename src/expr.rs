@@ -1,66 +1,57 @@
 use crate::error::RuntimeError;
-use crate::token::{Token, TokenType, Value};
+use crate::token::{Token, TokenType};
+use crate::value::Value;
 
-// TODO: maybe represent Token as enum so that more static checking can be performed (e.g. use for Grouping: Token::LeftParen, Box<Expr>, Token::RightParen)
-
-pub enum Expr<'tok> {
-    Literal(&'tok Token<'tok>),
-    Unary(&'tok Token<'tok>, Box<Expr<'tok>>),
-    Binary(Box<Expr<'tok>>, &'tok Token<'tok>, Box<Expr<'tok>>),
-    Grouping(&'tok Token<'tok>, Box<Expr<'tok>>, &'tok Token<'tok>),
+pub enum Expr<'token, 'lexeme> {
+    Literal(Value),
+    Unary(&'token Token<'lexeme>, Box<Expr<'token, 'lexeme>>),
+    Binary(
+        Box<Expr<'token, 'lexeme>>,
+        &'token Token<'lexeme>,
+        Box<Expr<'token, 'lexeme>>,
+    ),
+    Grouping(Box<Expr<'token, 'lexeme>>),
 }
 
-impl<'tok> Expr<'tok> {
+impl<'token, 'lexeme> Expr<'token, 'lexeme> {
     // print in prefix notation
-    fn pretty_print(self) -> String {
+    pub fn pretty_print(&self) -> String {
         match self {
-            Self::Literal(tok) => String::from_utf8_lossy(tok.lexeme).into_owned(),
-            Self::Unary(tok, expr) => {
-                "(".to_owned() + &String::from_utf8_lossy(tok.lexeme) + &expr.pretty_print() + ")"
+            Self::Literal(val) => val.to_string(),
+            Self::Unary(token, expr) => {
+                "(".to_owned() + &String::from_utf8_lossy(token.lexeme) + &expr.pretty_print() + ")"
             }
-            Self::Binary(l_expr, tok, r_expr) => {
+            Self::Binary(l_expr, token, r_expr) => {
                 "(".to_owned()
-                    + &String::from_utf8_lossy(tok.lexeme)
+                    + &String::from_utf8_lossy(token.lexeme)
                     + &l_expr.pretty_print()
                     + &r_expr.pretty_print()
                     + ")"
             }
-            Self::Grouping(l_tok, expr, r_tok) => {
-                "(".to_owned()
-                    + &String::from_utf8_lossy(l_tok.lexeme)
-                    + &expr.pretty_print()
-                    + &String::from_utf8_lossy(r_tok.lexeme)
-                    + ")"
-            }
+            Self::Grouping(expr) => "(".to_owned() + &expr.pretty_print() + ")",
         }
     }
 
-    pub fn interpret(&self) -> Result<Value, RuntimeError<'tok>> {
+    pub fn interpret(self) -> Result<Value, RuntimeError<'lexeme>> {
         match self {
-            Self::Literal(tok) => match &tok.literal {
-                Some(val) => Ok(val.into()),
-                None => Err(RuntimeError {
-                    tok,
-                    msg: "Literal with no value",
-                }),
-            },
-            Self::Unary(tok, expr) => {
+            Self::Literal(val) => Ok(val),
+            Self::Unary(token, expr) => {
                 let right = expr.interpret()?;
-                match (tok.r#type, &right) {
+                match (token.token_type, &right) {
                     (TokenType::Minus, Value::Number(n)) => Ok(Value::Number(-n)),
                     (TokenType::Bang, Value::Boolean(_)) => {
                         Ok(Value::Boolean(!Expr::is_truthy(&right)))
                     }
                     _ => Err(RuntimeError {
-                        tok,
+                        token: token.deep_clone(),
                         msg: "Invalid unary expression",
                     }),
                 }
             }
-            Self::Binary(l_expr, tok, r_expr) => {
+            Self::Binary(l_expr, token, r_expr) => {
                 let left = l_expr.interpret()?;
                 let right = r_expr.interpret()?;
-                match (&left, tok.r#type, &right) {
+                match (&left, token.token_type, &right) {
                     // arithmetic operators
                     (Value::Number(a), TokenType::Minus, Value::Number(b)) => {
                         Ok(Value::Number(a - b))
@@ -97,12 +88,12 @@ impl<'tok> Expr<'tok> {
                         Ok(Value::Boolean(Expr::is_equal(&left, &right)))
                     }
                     _ => Err(RuntimeError {
-                        tok,
+                        token: token.deep_clone(),
                         msg: "Invalid binary expression",
                     }),
                 }
             }
-            Self::Grouping(_, expr, _) => expr.interpret(),
+            Self::Grouping(expr) => expr.interpret(),
         }
     }
 
